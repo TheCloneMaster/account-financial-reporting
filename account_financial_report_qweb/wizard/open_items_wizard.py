@@ -44,6 +44,10 @@ class OpenItemsReportWizard(models.TransientModel):
         comodel_name='res.partner',
         string='Filter partners',
     )
+    zone_ids = fields.Many2many(
+        comodel_name='res.country.state',
+        string='Filter zones',
+    )
 
     @api.onchange('receivable_accounts_only', 'payable_accounts_only')
     def onchange_type_accounts_only(self):
@@ -79,6 +83,7 @@ class OpenItemsReportWizard(models.TransientModel):
             'company_id': self.company_id.id,
             'filter_account_ids': [(6, 0, self.account_ids.ids)],
             'filter_partner_ids': [(6, 0, self.partner_ids.ids)],
+            'filter_zone_ids': [(6, 0, self.zone_ids.ids)],
         }
 
     def _export(self, xlsx_report=False):

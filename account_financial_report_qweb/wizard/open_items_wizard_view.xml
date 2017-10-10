@@ -22,6 +22,9 @@
                 <label for="partner_ids"/>
                 <field name="partner_ids" nolabel="1" options="{'no_create': True}"/>
                 <group/>
+                <label for="zone_ids"/>
+                <field name="zone_ids" nolabel="1" options="{'no_create': True}"/>
+                <group/>
                 <label for="account_ids"/>
                 <group col="4">
                     <field name="receivable_accounts_only"/>

@@ -25,6 +25,7 @@ class OpenItemsReport(models.TransientModel):
     company_id = fields.Many2one(comodel_name='res.company')
     filter_account_ids = fields.Many2many(comodel_name='account.account')
     filter_partner_ids = fields.Many2many(comodel_name='res.partner')
+    filter_zone_ids = fields.Many2many(comodel_name='res.country.state')
 
     # Flag fields, used for report display
     has_second_currency = fields.Boolean()
@@ -186,9 +187,9 @@ WITH
             FROM
                 account_account a
             INNER JOIN
-                account_move_line ml ON a.id = ml.account_id AND ml.date <= %s
+                account_move_line ml ON a.id = ml.account_id AND ml.date_maturity <= %s
             """
-        if self.filter_partner_ids:
+        if self.filter_partner_ids or self.filter_zone_ids:
             query_inject_account += """
             INNER JOIN
                 res_partner p ON ml.partner_id = p.id
@@ -212,6 +213,11 @@ WITH
             query_inject_account += """
             AND
                 p.id IN %s
+            """
+        if self.filter_zone_ids:
+            query_inject_account += """
+            AND
+                p.state_id IN %s
             """
         query_inject_account += """
             GROUP BY
@@ -249,6 +255,10 @@ FROM
             query_inject_account_params += (
                 tuple(self.filter_partner_ids.ids),
             )
+        if self.filter_zone_ids:
+            query_inject_account_params += (
+                tuple(self.filter_zone_ids.ids),
+            )
         query_inject_account_params += (
             self.id,
             self.env.uid,
@@ -283,7 +293,7 @@ WITH
             INNER JOIN
                 account_account_type at ON a.user_type_id = at.id
             INNER JOIN
-                account_move_line ml ON a.id = ml.account_id AND ml.date <= %s
+                account_move_line ml ON a.id = ml.account_id AND ml.date_maturity <= %s
         """
         if self.only_posted_moves:
             query_inject_partner += """
@@ -300,6 +310,11 @@ WITH
             query_inject_partner += """
             AND
                 p.id IN %s
+            """
+        if self.filter_zone_ids:
+            query_inject_partner += """
+            AND
+                p.state_id IN %s
             """
         query_inject_partner += """
             GROUP BY
@@ -333,6 +348,10 @@ FROM
         if self.filter_partner_ids:
             query_inject_partner_params += (
                 tuple(self.filter_partner_ids.ids),
+            )
+        if self.filter_zone_ids:
+            query_inject_partner_params += (
+                tuple(self.filter_zone_ids.ids),
             )
         query_inject_partner_params += (
             self.env.uid,
@@ -387,11 +406,11 @@ FROM
             LEFT JOIN
                 account_move_line ml_future
                     ON ml.balance < 0 AND pr.debit_move_id = ml_future.id
-                    AND ml_future.date >= %s
+                    AND ml_future.date_maturity >= %s
             LEFT JOIN
                 account_move_line ml_past
                     ON ml.balance < 0 AND pr.debit_move_id = ml_past.id
-                    AND ml_past.date < %s
+                    AND ml_past.date_maturity < %s
             """
         else:
             sub_query += """
@@ -401,11 +420,11 @@ FROM
             LEFT JOIN
                 account_move_line ml_future
                     ON ml.balance > 0 AND pr.credit_move_id = ml_future.id
-                    AND ml_future.date >= %s
+                    AND ml_future.date_maturity >= %s
             LEFT JOIN
                 account_move_line ml_past
                     ON ml.balance > 0 AND pr.credit_move_id = ml_past.id
-                    AND ml_past.date < %s
+                    AND ml_past.date_maturity < %s
         """
         sub_query += """
             WHERE
@@ -557,11 +576,11 @@ INNER JOIN
 LEFT JOIN
     account_full_reconcile fr ON ml.full_reconcile_id = fr.id
 LEFT JOIN
-    res_currency c ON a.currency_id = c.id
+    res_currency c ON ml.currency_id = c.id
 WHERE
     ra.report_id = %s
 AND
-    ml.date <= %s
+    ml.date_maturity <= %s
         """
         if self.only_posted_moves:
             query_inject_move_line += """

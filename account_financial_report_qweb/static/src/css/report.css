@@ -29,7 +29,7 @@ body, table, td, span, div {
     border-left:0px;
     border-right:0px;
     text-align:left;
-    font-size:10px;
+    font-size:14px;
     padding-right:3px;
     padding-left:3px;
     padding-top:2px;
@@ -58,7 +58,7 @@ body, table, td, span, div {
     font-style:italic;
 }
 .account_title {
-    font-size:11px;
+    font-size:16px;
     font-weight:bold;
 }
 .account_title.labels {
@@ -88,7 +88,7 @@ body, table, td, span, div {
     white-space: nowrap;
 }
 .custom_footer {
-    font-size:7px !important;
+    font-size:10px !important;
 }
 .page_break {
     page-break-inside: avoid;
