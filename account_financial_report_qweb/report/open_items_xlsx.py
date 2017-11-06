@@ -6,7 +6,7 @@
 from . import abstract_report_xlsx
 from odoo.report import report_sxw
 from odoo import _
-
+from datetime import date
 
 class OpenItemsXslx(abstract_report_xlsx.AbstractReportXslx):
 
@@ -19,6 +19,33 @@ class OpenItemsXslx(abstract_report_xlsx.AbstractReportXslx):
         return _('Open Items')
 
     def _get_report_columns(self, report):
+        return {
+            0: {'header': _('Fecha'), 'field': 'date', 'width': 11},
+            1: {'header': _('Factura'), 'field': 'entry', 'width': 18},
+            2: {'header': _('Vencimiento'), 'field': 'date_due', 'width': 11},
+            
+            3: {'header': _('Plazo'), 'field': 'term', 'width': 8},
+            4: {'header': _('Días Vencidos'), 'field': 'due_days', 'type': 'amount','width': 9},
+            5: {'header': _('Colones'),
+                'field': 'amount_residual',
+                'field_final_balance': 'cumulative_crc',
+                'type': 'amount',
+                'width': 14},
+            6: {'header': _('Dólares'),
+                'field': 'amount_residual_currency',
+                'field_final_balance': 'cumulative_usdx',
+                'type': 'amount',
+                'width': 14},
+            7: {'header': _('Acum. Colones'),
+                 'field': 'cumulative',
+                 'type': 'amount',
+                 'width': 14},
+            8: {'header': _('Acum. Dólares'),
+                 'field': 'cumulative_usd',
+                 'type': 'amount',
+                 'width': 14},
+        }
+        ################  ORIGINAL VERSION
         return {
             0: {'header': _('Date'), 'field': 'date', 'width': 11},
             1: {'header': _('Entry'), 'field': 'entry', 'width': 18},
@@ -46,6 +73,7 @@ class OpenItemsXslx(abstract_report_xlsx.AbstractReportXslx):
                  'type': 'amount',
                  'width': 14},
         }
+
 
     def _get_report_filters(self, report):
         return [
@@ -82,19 +110,44 @@ class OpenItemsXslx(abstract_report_xlsx.AbstractReportXslx):
 
                 # Display array header for move lines
                 self.write_array_header()
+                
+                cumulative = cumulative_usd = 0
 
                 # Display account move lines
                 for line in partner.move_line_ids:
+                    if abs(line.amount_residual)<0.01:
+                        continue
+                    elif line.amount_residual_currency:
+                        cumulative_usd += line.amount_residual_currency
+                        setattr(line, 'amount_residual', 0.0)
+                    else:
+                        cumulative += line.amount_residual
+                    setattr(line, 'cumulative', cumulative)
+                    setattr(line, 'cumulative_usd', cumulative_usd)
+                    #setattr(line, 'term', partner.partner_id.property_payment_term_id.name)
+                    if line.move_line_id.invoice_id and line.move_line_id.invoice_id.payment_term_id:
+                        setattr(line, 'term', line.move_line_id.invoice_id.payment_term_id.name)
+                    else:
+                        setattr(line, 'term', '')
+                    setattr(line, 'due_days', (date.today()-
+                    date(int(line.date_due[0:4]), int(line.date_due[5:7]), int(line.date_due[8:10]))).days)
                     self.write_line(line)
 
+                class partner_balance():
+                    cumulative_crc = cumulative
+                    cumulative_usdx = cumulative_usd
+                    name = partner.name
+                    
                 # Display ending balance line for partner
-                self.write_ending_balance(partner, 'partner')
+                self.write_ending_balance(partner_balance, 'partner')
 
                 # Line break
                 self.row_pos += 1
 
+            """
             # Display ending balance line for account
             self.write_ending_balance(account, 'account')
+            """
 
             # 2 lines break
             self.row_pos += 2

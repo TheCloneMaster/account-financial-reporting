@@ -187,7 +187,7 @@ WITH
             FROM
                 account_account a
             INNER JOIN
-                account_move_line ml ON a.id = ml.account_id AND ml.date_maturity <= %s
+                account_move_line ml ON a.id = ml.account_id AND ml.date <= %s
             """
         if self.filter_partner_ids or self.filter_zone_ids:
             query_inject_account += """
@@ -293,7 +293,7 @@ WITH
             INNER JOIN
                 account_account_type at ON a.user_type_id = at.id
             INNER JOIN
-                account_move_line ml ON a.id = ml.account_id AND ml.date_maturity <= %s
+                account_move_line ml ON a.id = ml.account_id AND ml.date <= %s
         """
         if self.only_posted_moves:
             query_inject_partner += """
@@ -406,11 +406,11 @@ FROM
             LEFT JOIN
                 account_move_line ml_future
                     ON ml.balance < 0 AND pr.debit_move_id = ml_future.id
-                    AND ml_future.date_maturity >= %s
+                    AND ml_future.date >= %s
             LEFT JOIN
                 account_move_line ml_past
                     ON ml.balance < 0 AND pr.debit_move_id = ml_past.id
-                    AND ml_past.date_maturity < %s
+                    AND ml_past.date < %s
             """
         else:
             sub_query += """
@@ -420,11 +420,11 @@ FROM
             LEFT JOIN
                 account_move_line ml_future
                     ON ml.balance > 0 AND pr.credit_move_id = ml_future.id
-                    AND ml_future.date_maturity >= %s
+                    AND ml_future.date >= %s
             LEFT JOIN
                 account_move_line ml_past
                     ON ml.balance > 0 AND pr.credit_move_id = ml_past.id
-                    AND ml_past.date_maturity < %s
+                    AND ml_past.date < %s
         """
         sub_query += """
             WHERE
@@ -523,7 +523,7 @@ SELECT
     ml.id AS move_line_id,
     ml.date,
     ml.date_maturity,
-    m.name AS entry,
+    CONCAT_WS(' - ', NULLIF(m.name, ''), NULLIF(m.ref, '')) AS entry,
     j.code AS journal,
     a.code AS account,
         """
@@ -580,7 +580,7 @@ LEFT JOIN
 WHERE
     ra.report_id = %s
 AND
-    ml.date_maturity <= %s
+    ml.date <= %s
         """
         if self.only_posted_moves:
             query_inject_move_line += """

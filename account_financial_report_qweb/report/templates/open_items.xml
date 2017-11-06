@@ -124,41 +124,44 @@
 
             <!-- Display each lines -->
             <t t-foreach="partner.move_line_ids" t-as="line">
-                <!-- # lines or centralized lines -->
-                <t t-if="not line.amount_residual_currency" t-set="cumulative" t-value="cumulative + line.amount_residual"/>
-                <t t-if="line.amount_residual_currency" t-set="cumulative_usd" t-value="cumulative_usd + line.amount_residual_currency"/>
-                <div class="act_as_row lines">
-                    <!--## date-->
-                    <div class="act_as_cell left"><span t-field="line.date"/></div>
-                    <!--## move-->
-                    <div class="act_as_cell left"><span t-field="line.entry"/></div>
-                    <!--## date_due-->
-                    <div class="act_as_cell left"><span t-field="line.date_due"/></div>
+                <t t-if="abs(line.amount_residual)>0.001">
+                    <!-- # lines or centralized lines -->
+                    <t t-if="not line.amount_residual_currency" t-set="cumulative" t-value="cumulative + line.amount_residual"/>
+                    <t t-if="line.amount_residual_currency" t-set="cumulative_usd" t-value="cumulative_usd + line.amount_residual_currency"/>
+                    <div class="act_as_row lines">
+                        <!--## date-->
+                        <div class="act_as_cell left"><span t-field="line.date"/></div>
+                        <!--## move-->
+                        <div class="act_as_cell left"><span t-field="line.entry"/></div>
+                        <!--## date_due-->
+                        <div class="act_as_cell left"><span t-field="line.date_due"/></div>
 
-                    <!--## plazo-->
-                    <div class="act_as_cell left"><span t-field="partner.partner_id.property_payment_term_id.name"/></div>
-                    <!--## dias vencido-->
-                    <div class="act_as_cell left"><span t-esc="(datetime.date.today()-
-                    datetime.date(int(line.date_due[0:4]), int(line.date_due[5:7]), int(line.date_due[8:10]))).days"/></div>
+                        <!--## plazo-->
+                        <!--div class="act_as_cell left"><span t-field="partner.partner_id.property_payment_term_id.name"/></div-->
+                        <div class="act_as_cell left"><span t-if="line.move_line_id.invoice_id and line.move_line_id.invoice_id.payment_term_id" t-esc="line.move_line_id.invoice_id.payment_term_id.name"/></div>
+                        <!--## dias vencido-->
+                        <div class="act_as_cell left"><span t-esc="(datetime.date.today()-
+                        datetime.date(int(line.date_due[0:4]), int(line.date_due[5:7]), int(line.date_due[8:10]))).days"/></div>
 
-                        <!--## amount_total_due-->
-                    <!--div class="act_as_cell amount"><span t-field="line.amount_total_due"/></div-->
-                    <!--## amount_residual-->
-                    <div class="act_as_cell amount">
-                        <span t-if="not line.amount_residual_currency" t-field="line.amount_residual"/>
-                        <span t-if="line.amount_residual_currency" t-esc="0.0"/>
+                            <!--## amount_total_due-->
+                        <!--div class="act_as_cell amount"><span t-field="line.amount_total_due"/></div-->
+                        <!--## amount_residual-->
+                        <div class="act_as_cell amount">
+                            <span t-if="not line.amount_residual_currency" t-field="line.amount_residual"/>
+                            <span t-if="line.amount_residual_currency" t-esc="0.0"/>
+                        </div>
+                        <t t-if="has_second_currency">
+                            <!--## currency_name-->
+                            <!--div class="act_as_cell"><span t-field="line.currency_name"/></div-->
+                            <!--## amount_total_due_currency-->
+                            <!--div class="act_as_cell amount"><span t-field="line.amount_total_due_currency"/></div-->
+                            <!--## amount_residual_currency-->
+                            <div class="act_as_cell amount"><span t-field="line.amount_residual_currency"/></div>
+                        </t>
+                        <div class="act_as_cell amount"><span t-esc="cumulative" t-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: o.company_id.currency_id}"/></div>
+                        <div class="act_as_cell amount"><span t-esc="cumulative_usd" t-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;:line.move_line_id.currency_id}"/></div>
                     </div>
-                    <t t-if="has_second_currency">
-                        <!--## currency_name-->
-                        <!--div class="act_as_cell"><span t-field="line.currency_name"/></div-->
-                        <!--## amount_total_due_currency-->
-                        <!--div class="act_as_cell amount"><span t-field="line.amount_total_due_currency"/></div-->
-                        <!--## amount_residual_currency-->
-                        <div class="act_as_cell amount"><span t-field="line.amount_residual_currency"/></div>
-                    </t>
-                    <div class="act_as_cell amount"><span t-esc="cumulative" t-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: o.company_id.currency_id}"/></div>
-                    <div class="act_as_cell amount"><span t-esc="cumulative_usd" t-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;:line.move_line_id.currency_id}"/></div>
-                </div>
+                </t>
             </t>
         </div>
         <t t-set="account_or_partner_object" t-value="partner"/>
