@@ -138,7 +138,7 @@ class CommonPartnersReportHeaderWebkit(CommonReportHeaderWebkit):
         :param str date_stop: end date of the report to print
         """
 
-        periods = self._get_opening_periods()
+        periods = (-1,) # mab self._get_opening_periods()
         if not periods:
             periods = (-1,)
 

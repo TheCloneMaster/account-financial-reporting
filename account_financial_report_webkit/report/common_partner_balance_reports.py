@@ -56,9 +56,11 @@ class CommonPartnerBalanceReportHeaderWebkit(CommonBalanceReportHeaderWebkit,
                     # we'll never exclude reconciled entries in the legal
                     # reports
                     exclude_reconcile=False))
-            opening_mode = 'exclude_opening'
-            if main_filter == 'filter_opening':
-                opening_mode = 'include_opening'
+            # MAB
+            #opening_mode = 'exclude_opening'
+            #if main_filter == 'filter_opening':
+            #    opening_mode = 'include_opening'
+            opening_mode = 'include_opening'
             # get credit and debit for partner
             details = self._get_partners_totals_account(
                 filter_from,
