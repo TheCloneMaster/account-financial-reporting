@@ -26,21 +26,29 @@ class OpenItemsXslx(abstract_report_xlsx.AbstractReportXslx):
             
             3: {'header': _('Plazo'), 'field': 'term', 'width': 8},
             4: {'header': _('Días Vencidos'), 'field': 'due_days', 'type': 'amount','width': 9},
-            5: {'header': _('Colones'),
+            5: {'header': _('Total Factura ¢'),
+                'field': 'amount_total_due',
+                'type': 'amount',
+                'width': 14},
+            6: {'header': _('Saldo ¢'),
                 'field': 'amount_residual',
                 'field_final_balance': 'cumulative_crc',
                 'type': 'amount',
                 'width': 14},
-            6: {'header': _('Dólares'),
+            7: {'header': _('Total Factura $'),
+                 'field': 'amount_total_due_currency',
+                 'type': 'amount',
+                 'width': 14},
+            8: {'header': _('Saldo $'),
                 'field': 'amount_residual_currency',
                 'field_final_balance': 'cumulative_usdx',
                 'type': 'amount',
                 'width': 14},
-            7: {'header': _('Acum. Colones'),
+            9: {'header': _('Acum. Colones'),
                  'field': 'cumulative',
                  'type': 'amount',
                  'width': 14},
-            8: {'header': _('Acum. Dólares'),
+            10: {'header': _('Acum. Dólares'),
                  'field': 'cumulative_usd',
                  'type': 'amount',
                  'width': 14},
@@ -102,7 +110,7 @@ class OpenItemsXslx(abstract_report_xlsx.AbstractReportXslx):
         for account in report.account_ids:
             # Write account title
             self.write_array_title(account.code + ' - ' + account.name)
-
+            acc_cumulative = acc_cumulative_usd = 0
             # For each partner
             for partner in account.partner_ids:
                 # Write partner title
@@ -115,7 +123,7 @@ class OpenItemsXslx(abstract_report_xlsx.AbstractReportXslx):
 
                 # Display account move lines
                 for line in partner.move_line_ids:
-                    if abs(line.amount_residual)<0.01:
+                    if (line.amount_residual_currency and abs(line.amount_residual_currency)<1.0) or abs(line.amount_residual)<1.0:
                         continue
                     elif line.amount_residual_currency:
                         cumulative_usd += line.amount_residual_currency
@@ -143,11 +151,16 @@ class OpenItemsXslx(abstract_report_xlsx.AbstractReportXslx):
 
                 # Line break
                 self.row_pos += 1
+                acc_cumulative += cumulative
+                acc_cumulative_usd += cumulative_usd
 
-            """
+            class account_balance():
+                cumulative_crc = acc_cumulative
+                cumulative_usdx = acc_cumulative_usd
+                name = account.name
+                code = account.code
             # Display ending balance line for account
-            self.write_ending_balance(account, 'account')
-            """
+            self.write_ending_balance(account_balance, 'account')
 
             # 2 lines break
             self.row_pos += 2

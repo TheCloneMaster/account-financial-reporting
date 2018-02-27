@@ -23,32 +23,130 @@
                                 <div class="act_as_caption account_title" style="width: 100% !important;">
                                     <span t-field="account.code"/> - <span t-field="account.name"/>
                                 </div>
+                                <t t-set="acc_cumulative" t-value="0.00"/>
+                                <t t-set="acc_cumulative_usd" t-value="0.00"/>
 
                                 <!-- Display account partners -->
                                 <t t-foreach="account.partner_ids" t-as="partner">
+                                    <t t-if="not partner.name == 'Sin empresa asignada'">
                                     <div class="page_break">
                                         <!-- Display partner header -->
                                         <div class="act_as_caption account_title">
                                             <span t-field="partner.name"/>
                                         </div>
-                                        <t t-set="cumulative" t-value="0"/>
-                                        <t t-set="cumulative_usd" t-value="0"/>
+                                        <t t-set="cumulative" t-value="0.00"/>
+                                        <t t-set="cumulative_usd" t-value="0.00"/>
                                         <!-- Display partner move lines -->
-                                        <t t-call="account_financial_report_qweb.report_open_items_qweb_lines"/>
+                                        <!--t t-call="account_financial_report_qweb.report_open_items_qweb_lines"/-->
+                                        <div class="act_as_table data_table" style="width: 100% !important;">
+                                            <!-- Display table headers for lines -->
+                                            <div class="act_as_thead">
+                                                <div class="act_as_row labels">
+                                                    <!--## date-->
+                                                    <div class="act_as_cell first_column" style="width: 9%;">Fecha</div>
+                                                    <!--## move-->
+                                                    <div class="act_as_cell" style="width: 8%;">Factura</div>
+                                                    <!--## date_due-->
+                                                    <div class="act_as_cell" style="width: 9%;">Vencimiento</div>
+
+                                                    <!--## plazo-->
+                                                    <div class="act_as_cell" style="width: 8%;">Plazo</div>
+                                                    <!--## dias vencido-->
+                                                    <div class="act_as_cell" style="width: 9%;">Días Vencidos</div>
+
+                                                    <!--## amount_total_due-->
+                                                    <div class="act_as_cell" style="width: 9%;">Total Factura ¢</div>
+                                                    <!--## amount_residual-->
+                                                    <div class="act_as_cell" style="width: 10%;">Saldo ¢</div>
+                                                    <t t-if="has_second_currency">
+                                                    <!--## currency_name-->
+                                                    <!--div class="act_as_cell" style="width: 8%;">Moneda</div-->
+                                                    <!--## amount_total_due_currency-->
+                                                    <div class="act_as_cell amount" style="width: 9%;">Total Factura $</div>
+                                                    <!--## amount_residual_currency-->
+                                                    <div class="act_as_cell amount" style="width: 10%;">Saldo $</div>
+                                                    </t>
+                                                    <div class="act_as_cell" style="width: 10%;">Acum. ¢</div>
+                                                    <div class="act_as_cell" style="width: 10%;">Acum. $</div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Display each lines -->
+                                            <t t-foreach="partner.move_line_ids" t-as="line">
+                                                <t t-if="(not line.amount_residual_currency and abs(line.amount_residual)&gt;1.0) or abs(line.amount_residual_currency)&gt;1.0">
+                                                    <!-- # lines or centralized lines -->
+                                                    <t t-if="not line.amount_residual_currency" t-set="cumulative" t-value="cumulative + line.amount_residual"/>
+                                                    <t t-if="line.amount_residual_currency" t-set="cumulative_usd" t-value="cumulative_usd + line.amount_residual_currency"/>
+                                                    <div class="act_as_row lines">
+                                                        <!--## date-->
+                                                        <div class="act_as_cell left"><span t-field="line.date"/></div>
+                                                        <!--## move-->
+                                                        <div class="act_as_cell left"><span t-field="line.entry"/></div>
+                                                        <!--## date_due-->
+                                                        <div class="act_as_cell left"><span t-field="line.date_due"/></div>
+
+                                                        <!--## plazo-->
+                                                        <!--div class="act_as_cell left"><span t-field="partner.partner_id.property_payment_term_id.name"/></div-->
+                                                        <div class="act_as_cell left"><span t-if="line.move_line_id.invoice_id and line.move_line_id.invoice_id.payment_term_id" t-esc="line.move_line_id.invoice_id.payment_term_id.name"/></div>
+                                                        <!--## dias vencido-->
+                                                        <div class="act_as_cell left"><span t-esc="(datetime.date.today()-
+                                                        datetime.date(int(line.date_due[0:4]), int(line.date_due[5:7]), int(line.date_due[8:10]))).days"/></div>
+
+                                                            <!--## amount_total_due-->
+                                                        <div class="act_as_cell amount">
+                                                            <span t-if="not line.amount_residual_currency" t-field="line.amount_total_due"/>
+                                                            <span t-if="line.amount_residual_currency" t-esc="0.00"/>
+                                                        </div>
+                                                        <!--## amount_residual-->
+                                                        <div class="act_as_cell amount">
+                                                            <span t-if="not line.amount_residual_currency" t-field="line.amount_residual"/>
+                                                            <span t-if="line.amount_residual_currency" t-esc="0.00"/>
+                                                        </div>
+                                                        <t t-if="has_second_currency">
+                                                            <!--## currency_name-->
+                                                            <!--div class="act_as_cell"><span t-field="line.currency_name"/></div-->
+                                                            <!--## amount_total_due_currency-->
+                                                            <div class="act_as_cell amount"><span t-field="line.amount_total_due_currency"/></div>
+                                                            <!--## amount_residual_currency-->
+                                                            <div class="act_as_cell amount"><span t-field="line.amount_residual_currency"/></div>
+                                                        </t>
+                                                        <div class="act_as_cell amount"><span t-esc="cumulative" t-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: o.company_id.currency_id}"/></div>
+                                                        <div class="act_as_cell amount"><span t-esc="cumulative_usd" t-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;:line.move_line_id.currency_id}"/></div>
+                                                    </div>
+                                                </t>
+                                            </t>
+                                        </div>
+
 
                                         <!-- Display partner footer -->
-                                        <!--t t-call="account_financial_report_qweb.report_open_items_qweb_ending_cumul">
-                                            <t t-set="account_or_partner_object" t-value="partner"/>
-                                            <t t-set="type" t-value='"partner_type"'/>
-                                        </t-->
+                                        <div class="act_as_table list_table" style="width: 100% !important;">
+                                            <div class="act_as_row labels" style="font-weight: bold;">
+                                                <div class="act_as_cell first_column" style="width: 40%;"><span t-field="partner.name"/></div>
+                                                <div class="act_as_cell right" style="width: 20%;">Saldo Final</div>
+                                                <div class="act_as_cell amount" style="width: 20%;"><span t-esc="cumulative" t-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: o.company_id.currency_id}"/></div>
+                                                <div class="act_as_cell amount" style="width: 20%;">$<span t-esc="'{:,.2f}'.format(cumulative_usd)"/></div>
+                                            </div>
+                                        </div>
+                                        <br/>
+                                        <br/>
+                                        <t t-set="acc_cumulative" t-value="acc_cumulative + cumulative"/>
+                                        <t t-set="acc_cumulative_usd" t-value="acc_cumulative_usd + cumulative_usd"/>
                                     </div>
+                                    </t>
                                 </t>
 
                                 <!-- Display account footer -->
-                                <!--t t-call="account_financial_report_qweb.report_open_items_qweb_ending_cumul">
-                                    <t t-set="account_or_partner_object" t-value="account"/>
-                                    <t t-set="type" t-value='"account_type"'/>
-                                </t-->
+                                <div class="act_as_table list_table" style="width: 100% !important;">
+                                    <div class="act_as_row labels" style="font-weight: bold;">
+                                        <div class="act_as_cell first_column" style="width: 40%;"><span t-field="account.code"/> - <span t-field="account.name"/></div>
+                                        <div class="act_as_cell right" style="width: 20%;">Saldo Final</div>
+                                        <div class="act_as_cell amount" style="width: 20%;"><span t-esc="acc_cumulative" t-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: o.company_id.currency_id}"/></div>
+                                        <div class="act_as_cell amount" style="width: 20%;">$<span t-esc="'{:,.2f}'.format(acc_cumulative_usd)"/></div>
+                                    </div>
+                                </div>
+                                <br/>
+                                <br/>
+                                <br/>
                             </div>
                         </t>
                     </div>
@@ -82,128 +180,6 @@
                     <t t-if="not o.filter_zone_ids">Todas</t>
                     <t t-foreach="o.filter_zone_ids" t-as="line"><span t-field="line.name"/></t>
                 </div>
-            </div>
-        </div>
-        <br/>
-        <br/>
-    </template>
-
-    <template id="account_financial_report_qweb.report_open_items_qweb_lines">
-        <div class="act_as_table data_table" style="width: 100% !important;">
-            <!-- Display table headers for lines -->
-            <div class="act_as_thead">
-                <div class="act_as_row labels">
-                    <!--## date-->
-                    <div class="act_as_cell first_column" style="width: 9%;">Fecha</div>
-                    <!--## move-->
-                    <div class="act_as_cell" style="width: 8%;">Factura</div>
-                    <!--## date_due-->
-                    <div class="act_as_cell" style="width: 9%;">Vencimiento</div>
-
-                    <!--## plazo-->
-                    <div class="act_as_cell" style="width: 8%;">Plazo</div>
-                    <!--## dias vencido-->
-                    <div class="act_as_cell" style="width: 9%;">Días Vencidos</div>
-
-                    <!--## amount_total_due-->
-                    <!--div class="act_as_cell" style="width: 9%;">Original</div-->
-                    <!--## amount_residual-->
-                    <div class="act_as_cell" style="width: 10%;">Colones</div>
-                    <t t-if="has_second_currency">
-                    <!--## currency_name-->
-                    <!--div class="act_as_cell" style="width: 8%;">Moneda</div-->
-                    <!--## amount_total_due_currency-->
-                    <!--div class="act_as_cell amount" style="width: 9%;">Cur. Original</div-->
-                    <!--## amount_residual_currency-->
-                    <div class="act_as_cell amount" style="width: 10%;">Dólares</div>
-                    </t>
-                    <div class="act_as_cell" style="width: 10%;">Acum. Colones</div>
-                    <div class="act_as_cell" style="width: 10%;">Acum. Dólares</div>
-                </div>
-            </div>
-
-            <!-- Display each lines -->
-            <t t-foreach="partner.move_line_ids" t-as="line">
-                <t t-if="abs(line.amount_residual)>0.001">
-                    <!-- # lines or centralized lines -->
-                    <t t-if="not line.amount_residual_currency" t-set="cumulative" t-value="cumulative + line.amount_residual"/>
-                    <t t-if="line.amount_residual_currency" t-set="cumulative_usd" t-value="cumulative_usd + line.amount_residual_currency"/>
-                    <div class="act_as_row lines">
-                        <!--## date-->
-                        <div class="act_as_cell left"><span t-field="line.date"/></div>
-                        <!--## move-->
-                        <div class="act_as_cell left"><span t-field="line.entry"/></div>
-                        <!--## date_due-->
-                        <div class="act_as_cell left"><span t-field="line.date_due"/></div>
-
-                        <!--## plazo-->
-                        <!--div class="act_as_cell left"><span t-field="partner.partner_id.property_payment_term_id.name"/></div-->
-                        <div class="act_as_cell left"><span t-if="line.move_line_id.invoice_id and line.move_line_id.invoice_id.payment_term_id" t-esc="line.move_line_id.invoice_id.payment_term_id.name"/></div>
-                        <!--## dias vencido-->
-                        <div class="act_as_cell left"><span t-esc="(datetime.date.today()-
-                        datetime.date(int(line.date_due[0:4]), int(line.date_due[5:7]), int(line.date_due[8:10]))).days"/></div>
-
-                            <!--## amount_total_due-->
-                        <!--div class="act_as_cell amount"><span t-field="line.amount_total_due"/></div-->
-                        <!--## amount_residual-->
-                        <div class="act_as_cell amount">
-                            <span t-if="not line.amount_residual_currency" t-field="line.amount_residual"/>
-                            <span t-if="line.amount_residual_currency" t-esc="0.0"/>
-                        </div>
-                        <t t-if="has_second_currency">
-                            <!--## currency_name-->
-                            <!--div class="act_as_cell"><span t-field="line.currency_name"/></div-->
-                            <!--## amount_total_due_currency-->
-                            <!--div class="act_as_cell amount"><span t-field="line.amount_total_due_currency"/></div-->
-                            <!--## amount_residual_currency-->
-                            <div class="act_as_cell amount"><span t-field="line.amount_residual_currency"/></div>
-                        </t>
-                        <div class="act_as_cell amount"><span t-esc="cumulative" t-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: o.company_id.currency_id}"/></div>
-                        <div class="act_as_cell amount"><span t-esc="cumulative_usd" t-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;:line.move_line_id.currency_id}"/></div>
-                    </div>
-                </t>
-            </t>
-        </div>
-        <t t-set="account_or_partner_object" t-value="partner"/>
-        <t t-set="type" t-value='"partner_type"'/>
-        <div class="act_as_table list_table" style="width: 100% !important;">
-            <div class="act_as_row labels" style="font-weight: bold;">
-                <t t-if='type == "account_type"'>
-                    <div class="act_as_cell first_column" style="width: 40%;"><span t-field="account_or_partner_object.code"/> - <span t-field="account_or_partner_object.name"/></div>
-                    <div class="act_as_cell right" style="width: 20%;">Ending balance</div>
-                </t>
-                <t t-if='type == "partner_type"'>
-                    <div class="act_as_cell first_column" style="width: 40%;"></div>
-                    <div class="act_as_cell right" style="width: 20%;">Saldo Final</div>
-                </t>
-                <!--## amount_currency-->
-                <div class="act_as_cell amount" style="width: 10%;"><span t-esc="cumulative" t-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: o.company_id.currency_id}"/></div>
-                <div class="act_as_cell amount" style="width: 10%;">$<span t-esc="'{:,}'.format(cumulative_usd)"/></div>
-                <div class="act_as_cell " style="width: 10%;"></div>
-                <div class="act_as_cell " style="width: 10%;"></div>
-            </div>
-        </div>
-        <br/>
-        <br/>
-    </template>
-
-    <template id="account_financial_report_qweb.report_open_items_qweb_ending_cumul">
-        <!-- Display ending balance line for account or partner -->
-        <div class="act_as_table list_table" style="width: 100% !important;">
-            <div class="act_as_row labels" style="font-weight: bold;">
-                <t t-if='type == "account_type"'>
-                    <div class="act_as_cell first_column" style="width: 40%;"><span t-field="account_or_partner_object.code"/> - <span t-field="account_or_partner_object.name"/></div>
-                    <div class="act_as_cell right" style="width: 20%;">Ending balance</div>
-                </t>
-                <t t-if='type == "partner_type"'>
-                    <div class="act_as_cell first_column" style="width: 40%;"></div>
-                    <div class="act_as_cell right" style="width: 20%;">Partner ending balance</div>
-                </t>
-                <!--## amount_currency-->
-                <div class="act_as_cell amount" style="width: 10%;"><span t-esc="cumulative" t-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: o.company_id.currency_id}"/></div>
-                <div class="act_as_cell amount" style="width: 10%;"><span t-esc="cumulative_usd" t-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: o.company_id.currency_id}"/></div>
-                <div class="act_as_cell " style="width: 10%;"></div>
-                <div class="act_as_cell " style="width: 10%;"></div>
             </div>
         </div>
         <br/>

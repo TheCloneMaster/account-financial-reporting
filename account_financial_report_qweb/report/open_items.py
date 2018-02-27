@@ -3,6 +3,9 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
 from odoo import models, fields, api, _
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class OpenItemsReport(models.TransientModel):
@@ -365,22 +368,23 @@ FROM
         sub_query = """
             SELECT
                 ml.id,
-                ml.balance,
-                SUM(
+                round(ml.balance,2) as balance,
+                round(SUM(
                     CASE
                         WHEN ml_past.id IS NOT NULL
                         THEN pr.amount
                         ELSE NULL
                     END
-                ) AS partial_amount,
-                ml.amount_currency,
-                SUM(
+                ),2) AS partial_amount,
+                round(ml.amount_currency,2) as amount_currency,
+                round(SUM(
                     CASE
                         WHEN ml_past.id IS NOT NULL
                         THEN pr.amount_currency
                         ELSE NULL
                     END
-                ) AS partial_amount_currency
+                ),2) AS partial_amount_currency,
+                ml.currency_id
             FROM
                 report_open_items_qweb_partner rp
             INNER JOIN
@@ -406,11 +410,11 @@ FROM
             LEFT JOIN
                 account_move_line ml_future
                     ON ml.balance < 0 AND pr.debit_move_id = ml_future.id
-                    AND ml_future.date >= %s
+                    AND ml_future.date > %s
             LEFT JOIN
                 account_move_line ml_past
                     ON ml.balance < 0 AND pr.debit_move_id = ml_past.id
-                    AND ml_past.date < %s
+                    AND ml_past.date <= %s
             """
         else:
             sub_query += """
@@ -420,11 +424,11 @@ FROM
             LEFT JOIN
                 account_move_line ml_future
                     ON ml.balance > 0 AND pr.credit_move_id = ml_future.id
-                    AND ml_future.date >= %s
+                    AND ml_future.date > %s
             LEFT JOIN
                 account_move_line ml_past
                     ON ml.balance > 0 AND pr.credit_move_id = ml_past.id
-                    AND ml_past.date < %s
+                    AND ml_past.date <= %s
         """
         sub_query += """
             WHERE
@@ -488,13 +492,15 @@ WITH
                             ELSE amount_currency + SUM(partial_amount_currency)
                         END
                     ELSE amount_currency
-                END AS amount_residual_currency
+                END AS amount_residual_currency,
+                currency_id
             FROM
                 move_lines_amount
             GROUP BY
                 id,
                 balance,
-                amount_currency
+                amount_currency,
+                currency_id
         )
 INSERT INTO
     report_open_items_qweb_move_line
@@ -576,7 +582,7 @@ INNER JOIN
 LEFT JOIN
     account_full_reconcile fr ON ml.full_reconcile_id = fr.id
 LEFT JOIN
-    res_currency c ON ml.currency_id = c.id
+    res_currency c ON ml2.currency_id = c.id
 WHERE
     ra.report_id = %s
 AND
@@ -604,6 +610,17 @@ ORDER BY
 ORDER BY
     a.code, ml.date, ml.id
             """
+        #_logger.error('Tax Base Amount not computable probably due to a change in an underlying tax (%s).',
+        _logger.error(query_inject_move_line,
+                      self.date_at,
+                      self.date_at,
+                      self.id,
+                      self.date_at,
+                      self.date_at,
+                      self.id,
+                      self.env.uid,
+                      self.id,
+                      self.date_at)
         self.env.cr.execute(
             query_inject_move_line,
             (self.date_at,
